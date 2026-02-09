@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOCPA CIA Challenge Exam - Study Platform</title>
+    <title>CIA Challenge Exam - Study Platform</title>
     <style>
         * {
             margin: 0;
@@ -191,6 +191,7 @@
         /* Category Buttons */
         .category-btn {
             background: white;
+            color: black;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
             padding: 20px;
@@ -201,9 +202,11 @@
         }
         
         .category-btn:hover {
-            border-color: #3498db;
+            background: #1e3c72;
+            color: white;
+            border-color: #1e3c72;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
         }
 
         /* Progress Tracker */
@@ -559,7 +562,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎓 SOCPA CIA Challenge Exam</h1>
+            <h1>CIA Challenge Exam</h1>
             <p>Certified Internal Auditor - Comprehensive Study Platform</p>
         </header>
 
@@ -569,15 +572,27 @@
             <button class="tab-button" onclick="showTab('progress')">📊 Progress Tracker</button>
             <button class="tab-button" onclick="showTab('flashcards')">🎴 Flashcards</button>
             <button class="tab-button" onclick="showTab('exam')">⏱️ Mock Exam</button>
-            <button class="tab-button" onclick="showTab('add')">➕ Add Questions</button>
         </div>
 
         <!-- Practice Questions Tab -->
         <div id="practice" class="tab-content active">
             <h2 class="section-title">Practice Questions</h2>
+            <div id="paginationInfo" style="text-align: center; margin-bottom: 15px; color: #666; font-size: 1.1em;"></div>
             <div id="questionsContainer"></div>
+            <div id="paginationControls" style="text-align: center; margin: 30px 0; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                <button onclick="goToFirstPage()" style="background: #3498db;">⏮️ First</button>
+                <button onclick="previousPage()" style="background: #3498db;">◀️ Previous</button>
+                <span id="pageInfo" style="margin: 0 15px; font-weight: bold; color: #1e3c72; font-size: 1.1em;"></span>
+                <button onclick="nextPage()" style="background: #3498db;">Next ▶️</button>
+                <button onclick="goToLastPage()" style="background: #3498db;">Last ⏭️</button>
+                <select id="questionsPerPage" onchange="changeQuestionsPerPage()" style="padding: 10px; border-radius: 5px; border: 2px solid #3498db; font-size: 1em; margin-left: 15px;">
+                    <option value="10">10 per page</option>
+                    <option value="20" selected>20 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                </select>
+            </div>
             <div style="text-align: center; margin-top: 20px;">
-                <button onclick="loadMoreQuestions()">Load More Questions</button>
                 <button onclick="resetQuestions()">Reset All Answers</button>
             </div>
         </div>
@@ -735,7 +750,7 @@
         <div id="exam" class="tab-content">
             <h2 class="section-title">Mock Exam Mode</h2>
             <p style="color: #666; margin-bottom: 20px;">
-                📝 120 randomly selected questions | ⏱️ 3 hours | 🎯 Pass score: 70%
+                📝 120 randomly selected questions | ⏱️ 3 hours | 🎯 Pass score: 80%
             </p>
             <div class="exam-timer" id="examTimer">03:00:00</div>
             <div class="timer-controls">
@@ -747,55 +762,52 @@
             <div id="examQuestions" style="margin-top: 30px;"></div>
         </div>
 
-        <!-- Add Questions Tab -->
-        <div id="add" class="tab-content">
-            <h2 class="section-title">Add New Question</h2>
-            <form id="addQuestionForm">
-                <div class="form-group">
-                    <label>Domain:</label>
-                    <select id="questionDomain" required>
-                        <option value="">Select Domain</option>
-                        <option value="1">Domain 1: Essentials of Internal Auditing</option>
-                        <option value="2">Domain 2: Practice of Internal Auditing</option>
-                        <option value="3">Domain 3: Business Acumen</option>
-                    </select>
+    </div>
+
+    <!-- Exam Results Overlay -->
+    <div id="examResultsOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.95); z-index: 10000; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 50px auto; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="text-align: center;">
+                <div id="resultIcon" style="font-size: 100px; margin-bottom: 20px;"></div>
+                <h1 id="resultTitle" style="color: #1e3c72; font-size: 3em; margin-bottom: 10px;"></h1>
+                <p id="resultSubtitle" style="color: #666; font-size: 1.3em; margin-bottom: 40px;"></p>
+                
+                <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px; border-radius: 15px; margin-bottom: 30px;">
+                    <h2 style="font-size: 2em; margin-bottom: 30px;">📊 Exam Results</h2>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; text-align: left;">
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">Total Questions</div>
+                            <div id="resultTotal" style="font-size: 2.5em; font-weight: bold;"></div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">Answered</div>
+                            <div id="resultAnswered" style="font-size: 2.5em; font-weight: bold;"></div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">Correct Answers</div>
+                            <div id="resultCorrect" style="font-size: 2.5em; font-weight: bold;"></div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">Your Score</div>
+                            <div id="resultScore" style="font-size: 2.5em; font-weight: bold;"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Question:</label>
-                    <textarea id="questionText" required placeholder="Enter the question text..."></textarea>
+                
+                <div id="resultMessage" style="font-size: 1.2em; padding: 20px; border-radius: 10px; margin-bottom: 30px;"></div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="closeExamResults()" style="background: #3498db; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                        📋 Review Answers
+                    </button>
+                    <button onclick="startExam()" style="background: #2ecc71; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                        🔄 Take New Exam
+                    </button>
+                    <button onclick="closeExamResults(); showTab('practice')" style="background: #95a5a6; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                        📚 Back to Practice
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>Option A:</label>
-                    <input type="text" id="optionA" required>
-                </div>
-                <div class="form-group">
-                    <label>Option B:</label>
-                    <input type="text" id="optionB" required>
-                </div>
-                <div class="form-group">
-                    <label>Option C:</label>
-                    <input type="text" id="optionC" required>
-                </div>
-                <div class="form-group">
-                    <label>Option D:</label>
-                    <input type="text" id="optionD" required>
-                </div>
-                <div class="form-group">
-                    <label>Correct Answer:</label>
-                    <select id="correctAnswer" required>
-                        <option value="">Select Correct Answer</option>
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
-                        <option value="D">D</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Explanation:</label>
-                    <textarea id="explanation" placeholder="Explain why this is the correct answer..."></textarea>
-                </div>
-                <button type="submit">Add Question</button>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -8831,6 +8843,10 @@
         let isFlipped = false;
         let examTimer = null;
         let examTimeLeft = 10800; // 3 hours in seconds
+        
+        // Pagination variables
+        let currentPage = 1;
+        let questionsPerPage = 20;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -8867,10 +8883,76 @@
             const container = document.getElementById('questionsContainer');
             container.innerHTML = '';
 
-            filteredQuestions.forEach((q, index) => {
-                const card = createQuestionCard(q, index);
+            // Calculate pagination
+            const totalQuestions = filteredQuestions.length;
+            const totalPages = Math.ceil(totalQuestions / questionsPerPage);
+            const startIndex = (currentPage - 1) * questionsPerPage;
+            const endIndex = Math.min(startIndex + questionsPerPage, totalQuestions);
+            
+            // Get questions for current page
+            const questionsToShow = filteredQuestions.slice(startIndex, endIndex);
+            
+            // Display questions
+            questionsToShow.forEach((q, index) => {
+                const card = createQuestionCard(q, startIndex + index);
                 container.appendChild(card);
             });
+            
+            // Update pagination info
+            updatePaginationInfo(startIndex + 1, endIndex, totalQuestions, currentPage, totalPages);
+            
+            // Scroll to top of questions
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function updatePaginationInfo(start, end, total, page, totalPages) {
+            const pageInfo = document.getElementById('pageInfo');
+            const paginationInfo = document.getElementById('paginationInfo');
+            
+            pageInfo.textContent = `Page ${page} of ${totalPages}`;
+            paginationInfo.textContent = `Showing questions ${start}-${end} of ${total}`;
+            
+            // Disable/enable buttons
+            const firstBtn = document.querySelector('button[onclick="goToFirstPage()"]');
+            const prevBtn = document.querySelector('button[onclick="previousPage()"]');
+            const nextBtn = document.querySelector('button[onclick="nextPage()"]');
+            const lastBtn = document.querySelector('button[onclick="goToLastPage()"]');
+            
+            if (firstBtn) firstBtn.disabled = page === 1;
+            if (prevBtn) prevBtn.disabled = page === 1;
+            if (nextBtn) nextBtn.disabled = page === totalPages;
+            if (lastBtn) lastBtn.disabled = page === totalPages;
+        }
+        
+        function nextPage() {
+            const totalPages = Math.ceil(filteredQuestions.length / questionsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadQuestions();
+            }
+        }
+        
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadQuestions();
+            }
+        }
+        
+        function goToFirstPage() {
+            currentPage = 1;
+            loadQuestions();
+        }
+        
+        function goToLastPage() {
+            currentPage = Math.ceil(filteredQuestions.length / questionsPerPage);
+            loadQuestions();
+        }
+        
+        function changeQuestionsPerPage() {
+            questionsPerPage = parseInt(document.getElementById('questionsPerPage').value);
+            currentPage = 1; // Reset to first page
+            loadQuestions();
         }
 
         function createQuestionCard(q, index, useSequentialNumber = false) {
@@ -8921,7 +9003,6 @@
             const question = questions.find(q => q.id === questionId);
             
             if (!question.userAnswer) {
-                alert('Please select an answer first!');
                 return;
             }
 
@@ -8939,14 +9020,7 @@
 
             updateProgress();
             
-            // Show result message
-            const correctAnswer = question.correct_answer || question.correct;
-            const isCorrect = question.userAnswer === correctAnswer;
-            const resultMsg = isCorrect
-                ? '✓ Correct! Well done!'
-                : `✗ Incorrect. The correct answer is ${correctAnswer}.`;
-            
-            alert(resultMsg);
+            // Result is shown visually through the correct/incorrect styling
         }
 
         function showExplanation(questionId) {
@@ -8987,9 +9061,6 @@ Keep the explanation concise but comprehensive.`;
             }
         }
 
-        function loadMoreQuestions() {
-            alert('Add more questions using the "Add Questions" tab!');
-        }
 
         // Progress Tracking
         function updateProgress() {
@@ -9103,7 +9174,6 @@ Keep the explanation concise but comprehensive.`;
                 updateExamTimer();
                 if (examTimeLeft <= 0) {
                     clearInterval(examTimer);
-                    alert('⏰ Time is up! Submitting exam...');
                     submitExam();
                 }
             }, 1000);
@@ -9142,7 +9212,6 @@ Keep the explanation concise but comprehensive.`;
                     updateExamTimer();
                     if (examTimeLeft <= 0) {
                         clearInterval(examTimer);
-                        alert('⏰ Time is up! Submitting exam...');
                         submitExam();
                     }
                 }, 1000);
@@ -9163,62 +9232,48 @@ Keep the explanation concise but comprehensive.`;
             const answered = examQuestions.filter(q => q.userAnswer).length;
             const correct = examQuestions.filter(q => q.userAnswer === (q.correct_answer || q.correct)).length;
             const score = Math.round((correct / examQuestions.length) * 100);
+            const passed = score >= 80;
             
-            const resultMessage = `
-📊 EXAM RESULTS
-━━━━━━━━━━━━━━━━━━━━
-Questions: ${examQuestions.length}
-Answered: ${answered}
-Correct: ${correct}
-Score: ${score}%
-━━━━━━━━━━━━━━━━━━━━
-${score >= 70 ? '✅ PASSED! Congratulations!' : '❌ Not Passed. Keep studying!'}
-            `.trim();
+            // Show results overlay
+            document.getElementById('examResultsOverlay').style.display = 'block';
             
-            alert(resultMessage);
+            // Set icon and title based on pass/fail
+            if (passed) {
+                document.getElementById('resultIcon').textContent = '🎉';
+                document.getElementById('resultTitle').textContent = 'PASSED!';
+                document.getElementById('resultTitle').style.color = '#2ecc71';
+                document.getElementById('resultSubtitle').textContent = 'Congratulations! You passed the exam!';
+                document.getElementById('resultMessage').innerHTML = '<strong style="color: #2ecc71;">✅ Excellent work!</strong> You have demonstrated strong knowledge of CIA exam concepts.';
+                document.getElementById('resultMessage').style.background = '#d4edda';
+                document.getElementById('resultMessage').style.border = '2px solid #2ecc71';
+            } else {
+                document.getElementById('resultIcon').textContent = '📚';
+                document.getElementById('resultTitle').textContent = 'Not Passed';
+                document.getElementById('resultTitle').style.color = '#e74c3c';
+                document.getElementById('resultSubtitle').textContent = 'Keep studying and try again!';
+                document.getElementById('resultMessage').innerHTML = '<strong style="color: #e74c3c;">❌ Don\'t give up!</strong> Review the material and practice more questions to improve your score.';
+                document.getElementById('resultMessage').style.background = '#f8d7da';
+                document.getElementById('resultMessage').style.border = '2px solid #e74c3c';
+            }
+            
+            // Set statistics
+            document.getElementById('resultTotal').textContent = examQuestions.length;
+            document.getElementById('resultAnswered').textContent = answered;
+            document.getElementById('resultCorrect').textContent = correct;
+            document.getElementById('resultScore').textContent = score + '%';
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+        
+        function closeExamResults() {
+            document.getElementById('examResultsOverlay').style.display = 'none';
         }
 
-        // Add Question Form
-        document.getElementById('addQuestionForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const newQuestion = {
-                id: questions.length + 1,
-                domain: parseInt(document.getElementById('questionDomain').value),
-                question: document.getElementById('questionText').value,
-                options: {
-                    A: document.getElementById('optionA').value,
-                    B: document.getElementById('optionB').value,
-                    C: document.getElementById('optionC').value,
-                    D: document.getElementById('optionD').value
-                },
-                correct: document.getElementById('correctAnswer').value,
-                explanation: document.getElementById('explanation').value,
-                answered: false,
-                userAnswer: null
-            };
-
-            questions.push(newQuestion);
-            localStorage.setItem('ciaQuestions', JSON.stringify(questions));
-            
-            alert('Question added successfully!');
-            e.target.reset();
-            loadQuestions();
-            loadFlashcards();
-            updateProgress();
-        });
-
-        // Load saved questions from localStorage
-        const savedQuestions = localStorage.getItem('ciaQuestions');
-        if (savedQuestions) {
-            questions = JSON.parse(savedQuestions);
-            loadQuestions();
-            loadFlashcards();
-            updateProgress();
-        }
     
         function filterByCategory(categoryName) {
             filteredQuestions = questions.filter(q => q.category === categoryName);
+            currentPage = 1; // Reset to first page when filtering
             
             // Switch to Practice Questions tab
             showTab('practice');
@@ -9231,6 +9286,7 @@ ${score >= 70 ? '✅ PASSED! Congratulations!' : '❌ Not Passed. Keep studying!
         
         function showAllQuestions() {
             filteredQuestions = [...questions];
+            currentPage = 1; // Reset to first page
             
             // Switch to Practice Questions tab
             showTab('practice');
