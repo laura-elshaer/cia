@@ -9027,18 +9027,19 @@
             
             card.innerHTML = `
                 <div class="question-number">Question ${displayNumber}</div>
-                <div class="question-text">${q.question}</div>
+                <div class="question-text" id="question-text-${q.id}">${q.question}</div>
                 ${imageHTML}
-                <div class="options">
+                <div class="options" id="options-${q.id}">
                     ${Object.entries(q.options).map(([key, value]) => `
                         <div class="option" onclick="selectAnswer(${q.id}, '${key}')" id="option-${q.id}-${key}">
-                            <strong>${key}.</strong> ${value}
+                            <strong>${key}.</strong> <span class="option-text">${value}</span>
                         </div>
                     `).join('')}
                 </div>
                 <div class="question-controls">
                     <button onclick="checkAnswer(${q.id})">Check Answer</button>
                     <button onclick="showExplanation(${q.id})">Show Reasoning</button>
+                    <button onclick="translateQuestion(${q.id})" id="translate-btn-${q.id}" style="background: #27ae60;">🌐 Translate to Arabic</button>
                 </div>
                 <div class="explanation" id="explanation-${q.id}">
                     <strong>Reasoning:</strong> ${q.explanation}
@@ -9110,6 +9111,80 @@ Keep the explanation concise but comprehensive.`;
             const encodedPrompt = encodeURIComponent(prompt);
             window.open(`https://chat.openai.com/?q=${encodedPrompt}`, '_blank');
         }
+        async function translateQuestion(questionId) {
+            const question = questions.find(q => q.id === questionId);
+            const btn = document.getElementById(`translate-btn-${questionId}`);
+            const questionText = document.getElementById(`question-text-${questionId}`);
+            const optionsDiv = document.getElementById(`options-${questionId}`);
+            
+            // Check if already translated
+            if (question.translatedToArabic) {
+                // Switch back to English
+                questionText.innerHTML = question.question;
+                optionsDiv.querySelectorAll('.option-text').forEach((span, idx) => {
+                    const optionKey = Object.keys(question.options)[idx];
+                    span.textContent = question.options[optionKey];
+                });
+                btn.textContent = '🌐 Translate to Arabic';
+                btn.style.background = '#27ae60';
+                question.translatedToArabic = false;
+            } else {
+                // Translate to Arabic
+                btn.textContent = '⏳ Translating...';
+                btn.disabled = true;
+                
+                try {
+                    // Translate question
+                    const questionTranslation = await translateText(question.question);
+                    questionText.innerHTML = `<div style="direction: rtl; text-align: right;">${questionTranslation}</div><hr style="margin: 10px 0;"><div>${question.question}</div>`;
+                    
+                    // Translate options
+                    const optionTexts = optionsDiv.querySelectorAll('.option-text');
+                    for (let i = 0; i < optionTexts.length; i++) {
+                        const optionKey = Object.keys(question.options)[i];
+                        const originalText = question.options[optionKey];
+                        const translatedText = await translateText(originalText);
+                        optionTexts[i].innerHTML = `<div style="direction: rtl; text-align: right;">${translatedText}</div><hr style="margin: 5px 0;"><div>${originalText}</div>`;
+                    }
+                    
+                    btn.textContent = '🌐 Show English Only';
+                    btn.style.background = '#e67e22';
+                    btn.disabled = false;
+                    question.translatedToArabic = true;
+                } catch (error) {
+                    alert('Translation failed. Please try again.');
+                    btn.textContent = '🌐 Translate to Arabic';
+                    btn.disabled = false;
+                }
+            }
+        }
+        
+        async function translateText(text) {
+            // Using Google Translate (unofficial free API)
+            const encodedText = encodeURIComponent(text);
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodedText}`;
+            
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Translation API error');
+                }
+                
+                const data = await response.json();
+                
+                // Google Translate returns array format: [[[translated_text, original_text, null, null, 0]]]
+                if (data && data[0] && data[0][0] && data[0][0][0]) {
+                    return data[0][0][0];
+                } else {
+                    throw new Error('Translation failed');
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                throw error;
+            }
+        }
+
 
         function resetQuestions() {
             if (confirm('Reset all answers? This will clear your progress.')) {
