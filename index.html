@@ -572,6 +572,7 @@
             <button class="tab-button" onclick="showTab('progress')">📊 Progress Tracker</button>
             <button class="tab-button" onclick="showTab('flashcards')">🎴 Flashcards</button>
             <button class="tab-button" onclick="showTab('exam')">⏱️ Mock Exam</button>
+            <button class="tab-button" onclick="showTab('wrong')">❌ Wrong Answers</button>
         </div>
 
         <!-- Practice Questions Tab -->
@@ -594,6 +595,28 @@
             </div>
             <div style="text-align: center; margin-top: 20px;">
                 <button onclick="resetQuestions()">Reset All Answers</button>
+                <button onclick="showScoreSummary()" style="background: #27ae60; margin-left: 10px;">📊 View Score Summary</button>
+            </div>
+            
+            <!-- Floating Score Card -->
+            <div id="floatingScore" style="position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); min-width: 200px; z-index: 1000;">
+                <h3 style="margin: 0 0 15px 0; font-size: 1.2em; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 10px;">📊 Your Score</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>Answered:</span>
+                    <strong id="floatingAnswered">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>Correct:</span>
+                    <strong id="floatingCorrect" style="color: #2ecc71;">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>Wrong:</span>
+                    <strong id="floatingWrong" style="color: #e74c3c;">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.3); font-size: 1.1em;">
+                    <span>Accuracy:</span>
+                    <strong id="floatingAccuracy" style="color: #f39c12;">0%</strong>
+                </div>
             </div>
         </div>
 
@@ -740,6 +763,7 @@
                 <button onclick="previousFlashcard()">← Previous</button>
                 <button onclick="nextFlashcard()">Next →</button>
                 <button onclick="shuffleFlashcards()">🔀 Shuffle</button>
+                <button onclick="translateFlashcard()" id="translateFlashcardBtn" style="background: #27ae60;">🌐 Translate to Arabic</button>
             </div>
             <p style="text-align: center; margin-top: 15px; color: #666;">
                 Card <span id="currentCard">1</span> of <span id="totalCards">0</span>
@@ -760,6 +784,20 @@
                 <button onclick="submitExam()" style="background: #e74c3c;">📤 Submit Exam</button>
             </div>
             <div id="examQuestions" style="margin-top: 30px;"></div>
+        </div>
+
+        <!-- Wrong Answers Tab -->
+        <div id="wrong" class="tab-content">
+            <h2 class="section-title">❌ Wrong Answers Review</h2>
+            <p style="color: #666; margin-bottom: 20px; text-align: center;">
+                Review questions you answered incorrectly to improve your understanding
+            </p>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button onclick="clearWrongAnswers()" style="background: #e74c3c;">🗑️ Clear All Wrong Answers</button>
+                <button onclick="loadWrongAnswers()" style="background: #3498db; margin-left: 10px;">🔄 Refresh List</button>
+            </div>
+            <div id="wrongAnswersCount" style="text-align: center; margin-bottom: 20px; font-size: 1.2em; color: #e74c3c; font-weight: bold;"></div>
+            <div id="wrongAnswersContainer"></div>
         </div>
 
     </div>
@@ -805,6 +843,57 @@
                     </button>
                     <button onclick="closeExamResults(); showTab('practice')" style="background: #95a5a6; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
                         📚 Back to Practice
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Summary Overlay -->
+    <div id="scoreSummaryOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.95); z-index: 10000; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 50px auto; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="text-align: center;">
+                <div id="summaryIcon" style="font-size: 100px; margin-bottom: 20px;">📊</div>
+                <h1 style="color: #1e3c72; font-size: 3em; margin-bottom: 10px;">Practice Score Summary</h1>
+                <p style="color: #666; font-size: 1.3em; margin-bottom: 40px;">Here's how you're doing!</p>
+                
+                <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px; border-radius: 15px; margin-bottom: 30px;">
+                    <h2 style="font-size: 2em; margin-bottom: 30px;">📈 Your Performance</h2>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; text-align: left;">
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">Total Questions</div>
+                            <div id="summaryTotal" style="font-size: 2.5em; font-weight: bold;">0</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">Questions Answered</div>
+                            <div id="summaryAnswered" style="font-size: 2.5em; font-weight: bold;">0</div>
+                        </div>
+                        <div style="background: rgba(46, 204, 113, 0.2); padding: 20px; border-radius: 10px; border: 2px solid #2ecc71;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">✅ Correct Answers</div>
+                            <div id="summaryCorrect" style="font-size: 2.5em; font-weight: bold; color: #2ecc71;">0</div>
+                        </div>
+                        <div style="background: rgba(231, 76, 60, 0.2); padding: 20px; border-radius: 10px; border: 2px solid #e74c3c;">
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 5px;">❌ Wrong Answers</div>
+                            <div id="summaryWrong" style="font-size: 2.5em; font-weight: bold; color: #e74c3c;">0</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px; padding: 25px; background: rgba(255,255,255,0.15); border-radius: 10px;">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">Accuracy Rate</div>
+                        <div id="summaryAccuracy" style="font-size: 3.5em; font-weight: bold; color: #f39c12;">0%</div>
+                    </div>
+                </div>
+                
+                <div id="summaryMessage" style="font-size: 1.2em; padding: 20px; border-radius: 10px; margin-bottom: 30px; background: #e8f5e9; color: #2e7d32; border: 2px solid #4caf50;"></div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="closeScoreSummary()" style="background: #3498db; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                        ✅ Continue Practice
+                    </button>
+                    <button onclick="closeScoreSummary(); showTab('wrong')" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                        ❌ Review Wrong Answers
+                    </button>
+                    <button onclick="closeScoreSummary(); showTab('progress')" style="background: #9b59b6; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                        📊 View Full Progress
                     </button>
                 </div>
             </div>
@@ -8936,6 +9025,8 @@
                 updateProgress();
             } else if (tabName === 'flashcards') {
                 displayFlashcard();
+            } else if (tabName === 'wrong') {
+                loadWrongAnswers();
             }
         }
 
@@ -9070,19 +9161,88 @@
 
             question.answered = true;
             
+            // Check if answer is correct
+            const correctAnswer = question.correct_answer || question.correct;
+            const isCorrect = question.userAnswer === correctAnswer;
+            
             // Show correct/incorrect
             Object.keys(question.options).forEach(key => {
                 const optionEl = document.getElementById(`option-${questionId}-${key}`);
-                if (key === question.correct_answer || key === question.correct) {
+                if (key === correctAnswer) {
                     optionEl.classList.add('correct');
-                } else if (key === question.userAnswer && key !== (question.correct_answer || question.correct)) {
+                } else if (key === question.userAnswer && !isCorrect) {
                     optionEl.classList.add('incorrect');
                 }
             });
 
+            // Track wrong answers
+            if (!isCorrect) {
+                addToWrongAnswers(questionId);
+            }
+
             updateProgress();
             
             // Result is shown visually through the correct/incorrect styling
+        }
+
+        // Wrong Answers Management
+        function getWrongAnswers() {
+            const stored = localStorage.getItem('wrongAnswers');
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        function saveWrongAnswers(wrongAnswers) {
+            localStorage.setItem('wrongAnswers', JSON.stringify(wrongAnswers));
+        }
+
+        function addToWrongAnswers(questionId) {
+            let wrongAnswers = getWrongAnswers();
+            
+            // Add question ID if not already in the list
+            if (!wrongAnswers.includes(questionId)) {
+                wrongAnswers.push(questionId);
+                saveWrongAnswers(wrongAnswers);
+            }
+        }
+
+        function clearWrongAnswers() {
+            if (confirm('Are you sure you want to clear all wrong answers? This cannot be undone.')) {
+                localStorage.removeItem('wrongAnswers');
+                loadWrongAnswers();
+                alert('Wrong answers list has been cleared!');
+            }
+        }
+
+        function loadWrongAnswers() {
+            const wrongAnswerIds = getWrongAnswers();
+            const container = document.getElementById('wrongAnswersContainer');
+            const countDiv = document.getElementById('wrongAnswersCount');
+            
+            container.innerHTML = '';
+            
+            if (wrongAnswerIds.length === 0) {
+                countDiv.innerHTML = '🎉 No wrong answers yet! Keep up the good work!';
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666; font-size: 1.2em;">You haven\'t answered any questions incorrectly yet.<br>Start practicing to track your progress!</div>';
+                return;
+            }
+            
+            countDiv.innerHTML = `📊 Total Wrong Answers: ${wrongAnswerIds.length}`;
+            
+            // Get the actual question objects
+            const wrongQuestions = wrongAnswerIds.map(id => questions.find(q => q.id === id)).filter(q => q);
+            
+            // Display each wrong question
+            wrongQuestions.forEach((q, index) => {
+                const card = createQuestionCard(q, index);
+                container.appendChild(card);
+            });
+        }
+
+        function removeFromWrongAnswers(questionId) {
+            let wrongAnswers = getWrongAnswers();
+            wrongAnswers = wrongAnswers.filter(id => id !== questionId);
+            saveWrongAnswers(wrongAnswers);
+            loadWrongAnswers();
         }
 
         function showExplanation(questionId) {
@@ -9202,7 +9362,8 @@ Keep the explanation concise but comprehensive.`;
         function updateProgress() {
             const total = questions.length;
             const answered = questions.filter(q => q.answered).length;
-            const correct = questions.filter(q => q.answered && q.userAnswer === q.correct).length;
+            const correct = questions.filter(q => q.answered && q.userAnswer === (q.correct_answer || q.correct)).length;
+            const wrong = answered - correct;
             const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
 
             document.getElementById('totalQuestions').textContent = total;
@@ -9219,12 +9380,74 @@ Keep the explanation concise but comprehensive.`;
             [1, 2, 3].forEach(domain => {
                 const domainQuestions = questions.filter(q => q.domain === domain);
                 const domainAnswered = domainQuestions.filter(q => q.answered).length;
-                const domainProgress = domainQuestions.length > 0 ? 
+                const domainProgress = domainQuestions.length > 0 ?
                     Math.round((domainAnswered / domainQuestions.length) * 100) : 0;
                 const domainBar = document.getElementById(`domain${domain}Progress`);
                 domainBar.style.width = domainProgress + '%';
                 domainBar.textContent = domainProgress + '%';
             });
+
+            // Update floating score card
+            document.getElementById('floatingAnswered').textContent = answered;
+            document.getElementById('floatingCorrect').textContent = correct;
+            document.getElementById('floatingWrong').textContent = wrong;
+            document.getElementById('floatingAccuracy').textContent = accuracy + '%';
+        }
+
+        // Score Summary Functions
+        function showScoreSummary() {
+            const total = questions.length;
+            const answered = questions.filter(q => q.answered).length;
+            const correct = questions.filter(q => q.answered && q.userAnswer === (q.correct_answer || q.correct)).length;
+            const wrong = answered - correct;
+            const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+
+            // Update summary overlay
+            document.getElementById('summaryTotal').textContent = total;
+            document.getElementById('summaryAnswered').textContent = answered;
+            document.getElementById('summaryCorrect').textContent = correct;
+            document.getElementById('summaryWrong').textContent = wrong;
+            document.getElementById('summaryAccuracy').textContent = accuracy + '%';
+
+            // Set message based on performance
+            const messageDiv = document.getElementById('summaryMessage');
+            if (answered === 0) {
+                messageDiv.innerHTML = '🎯 Start answering questions to see your score!';
+                messageDiv.style.background = '#e3f2fd';
+                messageDiv.style.color = '#1565c0';
+                messageDiv.style.borderColor = '#2196f3';
+            } else if (accuracy >= 90) {
+                messageDiv.innerHTML = '🌟 Outstanding! You\'re mastering the material!';
+                messageDiv.style.background = '#e8f5e9';
+                messageDiv.style.color = '#2e7d32';
+                messageDiv.style.borderColor = '#4caf50';
+            } else if (accuracy >= 80) {
+                messageDiv.innerHTML = '✅ Great job! You\'re on the right track!';
+                messageDiv.style.background = '#e8f5e9';
+                messageDiv.style.color = '#2e7d32';
+                messageDiv.style.borderColor = '#4caf50';
+            } else if (accuracy >= 70) {
+                messageDiv.innerHTML = '📚 Good progress! Keep studying to improve!';
+                messageDiv.style.background = '#fff3e0';
+                messageDiv.style.color = '#e65100';
+                messageDiv.style.borderColor = '#ff9800';
+            } else if (accuracy >= 60) {
+                messageDiv.innerHTML = '💪 You\'re getting there! Review the wrong answers!';
+                messageDiv.style.background = '#fff3e0';
+                messageDiv.style.color = '#e65100';
+                messageDiv.style.borderColor = '#ff9800';
+            } else {
+                messageDiv.innerHTML = '📖 Keep practicing! Focus on understanding the concepts!';
+                messageDiv.style.background = '#ffebee';
+                messageDiv.style.color = '#c62828';
+                messageDiv.style.borderColor = '#f44336';
+            }
+
+            document.getElementById('scoreSummaryOverlay').style.display = 'block';
+        }
+
+        function closeScoreSummary() {
+            document.getElementById('scoreSummaryOverlay').style.display = 'none';
         }
 
         // Domain Toggle
@@ -9256,10 +9479,31 @@ Keep the explanation concise but comprehensive.`;
 
             const card = flashcards[currentFlashcardIndex];
             const flashcardEl = document.getElementById('flashcard');
-            flashcardEl.innerHTML = `
-                <div class="flashcard-front">${card.front}</div>
-                <div class="flashcard-back">${card.back}</div>
-            `;
+            const btn = document.getElementById('translateFlashcardBtn');
+            
+            // Check if this card has been translated
+            if (card.translatedToArabic && card.frontArabic && card.backArabic) {
+                flashcardEl.innerHTML = `
+                    <div class="flashcard-front">
+                        <div style="direction: rtl; text-align: right; padding: 10px; border-bottom: 2px solid #ddd; margin-bottom: 10px;">${card.frontArabic}</div>
+                        <div>${card.front}</div>
+                    </div>
+                    <div class="flashcard-back">
+                        <div style="direction: rtl; text-align: right; padding: 10px; border-bottom: 2px solid #ddd; margin-bottom: 10px;">${card.backArabic}</div>
+                        <div>${card.back}</div>
+                    </div>
+                `;
+                btn.textContent = '🌐 Show English Only';
+                btn.style.background = '#e67e22';
+            } else {
+                flashcardEl.innerHTML = `
+                    <div class="flashcard-front">${card.front}</div>
+                    <div class="flashcard-back">${card.back}</div>
+                `;
+                btn.textContent = '🌐 Translate to Arabic';
+                btn.style.background = '#27ae60';
+            }
+            
             flashcardEl.classList.remove('flipped');
             isFlipped = false;
             document.getElementById('currentCard').textContent = currentFlashcardIndex + 1;
@@ -9285,6 +9529,65 @@ Keep the explanation concise but comprehensive.`;
             flashcards.sort(() => Math.random() - 0.5);
             currentFlashcardIndex = 0;
             displayFlashcard();
+        }
+
+        async function translateFlashcard() {
+            if (flashcards.length === 0) return;
+            
+            const card = flashcards[currentFlashcardIndex];
+            const btn = document.getElementById('translateFlashcardBtn');
+            const flashcardEl = document.getElementById('flashcard');
+            
+            // Check if already translated
+            if (card.translatedToArabic) {
+                // Switch back to English
+                flashcardEl.innerHTML = `
+                    <div class="flashcard-front">${card.front}</div>
+                    <div class="flashcard-back">${card.back}</div>
+                `;
+                btn.textContent = '🌐 Translate to Arabic';
+                btn.style.background = '#27ae60';
+                card.translatedToArabic = false;
+            } else {
+                // Translate to Arabic
+                btn.textContent = '⏳ Translating...';
+                btn.disabled = true;
+                
+                try {
+                    // Translate front and back
+                    const frontTranslation = await translateText(card.front);
+                    const backTranslation = await translateText(card.back);
+                    
+                    // Store translations
+                    card.frontArabic = frontTranslation;
+                    card.backArabic = backTranslation;
+                    
+                    // Display bilingual version
+                    flashcardEl.innerHTML = `
+                        <div class="flashcard-front">
+                            <div style="direction: rtl; text-align: right; padding: 10px; border-bottom: 2px solid #ddd; margin-bottom: 10px;">${frontTranslation}</div>
+                            <div>${card.front}</div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div style="direction: rtl; text-align: right; padding: 10px; border-bottom: 2px solid #ddd; margin-bottom: 10px;">${backTranslation}</div>
+                            <div>${card.back}</div>
+                        </div>
+                    `;
+                    
+                    btn.textContent = '🌐 Show English Only';
+                    btn.style.background = '#e67e22';
+                    card.translatedToArabic = true;
+                } catch (error) {
+                    alert('Translation failed. Please try again.');
+                    btn.textContent = '🌐 Translate to Arabic';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+            
+            // Reset flip state
+            flashcardEl.classList.remove('flipped');
+            isFlipped = false;
         }
 
         // Mock Exam
